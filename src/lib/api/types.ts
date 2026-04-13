@@ -251,6 +251,7 @@ export interface ProfileUpdateRequest {
   birthDate?: string;
   location?: WeatherAPILocation;
   temperatureSensitivity?: number;
+  binaryContentId?: string;
 }
 
 export interface FeedCreateRequest {
@@ -275,12 +276,14 @@ export interface ClothesCreateRequest {
   name: string;
   type: ClothesType;
   attributes: ClothesAttributeDto[];
+  binaryContentId?: string;
 }
 
 export interface ClothesUpdateRequest {
   name?: string;
   type?: ClothesType;
   attributes?: ClothesAttributeDto[];
+  binaryContentId?: string;
 }
 
 export interface ClothesAttributeDefCreateRequest {
@@ -360,4 +363,15 @@ export interface DirectMessageParams extends CursorParams {
 
 export interface FeedCommentParams extends CursorParams {
   feedId: string;
+}
+
+export interface ImagePresignedUrlRequest {
+  fileName: string;
+  contentType: string;
+  size: number;
+}
+
+export interface ImagePresignedUrlResponse {
+  uploadUrl: string;
+  binaryContentId: string;
 }

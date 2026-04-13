@@ -12,6 +12,7 @@ import GenderRadioGroup from '@/components/profile/GenderRadioGroup';
 import TemperatureSensitivitySlider from '@/components/profile/TemperatureSensitivitySlider';
 import LocationInput from '@/components/profile/LocationInput';
 import { type Gender, type ProfileUpdateRequest, type WeatherAPILocation } from '@/lib/api/types';
+import { getImagePresignedUrl, uploadImageToPresignedUrl, completeBinaryContentUpload } from '@/lib/api/binaryContent';
 
 interface SettingsFormData {
   name: string;
@@ -108,24 +109,34 @@ export default function MyProfileSettingsPage() {
         name: data.name || undefined,
         gender: data.gender,
         birthDate: data.birthDate || undefined,
-        temperatureSensitivity: data.temperatureSensitivity
+        temperatureSensitivity: data.temperatureSensitivity,
       };
+      let binaryContentId: string | undefined;
 
       // 위치 정보 처리
       if (data.location) {
         updateRequest.location = data.location;
       }
 
-      // API 직접 호출
-      const updatedProfile = await updateProfile(
-        currentUserId, 
-        updateRequest, 
-        selectedImage || undefined
-      );
+      if (selectedImage) {
+        const presigned = await getImagePresignedUrl({
+          fileName: selectedImage.name,
+          contentType: selectedImage.type || 'application/octet-stream',
+          size: selectedImage.size,
+        });
 
-      // 스토어 데이터 동기화
+        await uploadImageToPresignedUrl(presigned.uploadUrl, selectedImage);
+        await completeBinaryContentUpload(presigned.binaryContentId);
+
+        binaryContentId = presigned.binaryContentId;
+      }
+
+      if (binaryContentId) {
+        updateRequest.binaryContentId = binaryContentId;
+      }
+
+      const updatedProfile = await updateProfile(currentUserId, updateRequest);
       useMyProfileStore.getState().update(updatedProfile);
-
       toast.success('프로필이 성공적으로 업데이트되었습니다.');
       setSelectedImage(null);
     } catch (error) {
@@ -202,27 +213,27 @@ export default function MyProfileSettingsPage() {
           />
 
           {/* 액션 버튼 */}
-            {
-              isDirty && (
-                  <div className="flex gap-3.5 items-center justify-end pt-3">
-                    <Button
-                        type="button"
-                        variant="secondary"
-                        onClick={handleReset}
-                        disabled={isSubmitting}
-                    >
-                      되돌리기
-                    </Button>
-                    <Button
-                        type="submit"
-                        variant="primary"
-                        disabled={isSubmitting}
-                    >
-                      {isSubmitting ? '저장 중...' : '저장'}
-                    </Button>
-                  </div>
-                )
-            }
+          {
+            isDirty && (
+              <div className="flex gap-3.5 items-center justify-end pt-3">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={handleReset}
+                  disabled={isSubmitting}
+                >
+                  되돌리기
+                </Button>
+                <Button
+                  type="submit"
+                  variant="primary"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? '저장 중...' : '저장'}
+                </Button>
+              </div>
+            )
+          }
 
 
         </form>

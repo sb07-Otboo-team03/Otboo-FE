@@ -28,7 +28,7 @@ export const getUserList = async (params: UserListParams): Promise<CursorRespons
 /**
  * 프로필 조회
  */
-export const getProfile = async ({userId}: { userId: string }): Promise<ProfileDto> => {
+export const getProfile = async ({ userId }: { userId: string }): Promise<ProfileDto> => {
   return apiClient.get<ProfileDto>(`/api/users/${userId}/profiles`);
 };
 
@@ -36,25 +36,17 @@ export const getProfile = async ({userId}: { userId: string }): Promise<ProfileD
  * 프로필 업데이트
  */
 export const updateProfile = async (
-  userId: string, 
-  request: ProfileUpdateRequest, 
-  image?: File
+  userId: string,
+  request: ProfileUpdateRequest,
 ): Promise<ProfileDto> => {
-  const formData = new FormData();
-  formData.append('request', new Blob([JSON.stringify(request)], { type: 'application/json' }));
-  
-  if (image) {
-    formData.append('image', image);
-  }
-  
-  return apiClient.patchFormData<ProfileDto>(`/api/users/${userId}/profiles`, formData);
+  return apiClient.patch<ProfileDto>(`/api/users/${userId}/profiles`, request);
 };
 
 /**
  * 비밀번호 변경
  */
 export const changePassword = async (
-  userId: string, 
+  userId: string,
   request: ChangePasswordRequest
 ): Promise<void> => {
   await apiClient.patch<void>(`/api/users/${userId}/password`, request);
@@ -64,7 +56,7 @@ export const changePassword = async (
  * 권한 수정
  */
 export const updateRole = async (
-  userId: string, 
+  userId: string,
   request: UserRoleUpdateRequest
 ): Promise<UserDto> => {
   return apiClient.patch<UserDto>(`/api/users/${userId}/role`, request);
@@ -74,7 +66,7 @@ export const updateRole = async (
  * 계정 잠금 상태 변경
  */
 export const updateUserLock = async (
-  userId: string, 
+  userId: string,
   request: UserLockUpdateRequest
 ): Promise<UserDto> => {
   return apiClient.patch<UserDto>(`/api/users/${userId}/lock`, request);
