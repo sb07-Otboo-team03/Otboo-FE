@@ -1,14 +1,14 @@
 import RecommendationItem from './RecommendationItem';
-import {useRecommendationStore} from "@/lib/stores/useRecommendationStore.ts";
+import { useRecommendationStore } from "@/lib/stores/useRecommendationStore.ts";
 
 export default function RecommendationGrid() {
-  const {data: recommendations, loading} = useRecommendationStore();
+  const { data: recommendations, loading } = useRecommendationStore();
 
   if (loading) {
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 w-full">
         {[...Array(10)].map((_, index) => (
-          <div 
+          <div
             key={index}
             className="bg-white rounded-[20px] shadow-[0px_2px_4px_0px_rgba(55,55,64,0.03)] border border-[#e7e7e9] overflow-hidden animate-pulse"
           >
@@ -40,7 +40,7 @@ export default function RecommendationGrid() {
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 p-1">
         {clothes.map((item, index) => (
           <RecommendationItem
-            key={`${item.clothesId}-${index}`}
+            key={`${item.id}-${index}`}
             item={item}
           />
         ))}

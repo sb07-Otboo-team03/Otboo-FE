@@ -10,7 +10,7 @@ interface FeedDetailLeftSectionProps {
 
 export default function FeedDetailLeftSection({ feed }: FeedDetailLeftSectionProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
-  
+
   // 현재 선택된 OOTD
   const currentOotd = feed.ootds[currentIndex];
 
@@ -31,9 +31,9 @@ export default function FeedDetailLeftSection({ feed }: FeedDetailLeftSectionPro
       <div className="content-stretch flex flex-col items-start justify-start overflow-clip relative w-full">
         {/* 메인 이미지 영역 - 600x600 정사각형 */}
         {currentOotd?.imageUrl ? (
-          <div className="aspect-[600/600] bg-center bg-cover bg-no-repeat shrink-0 w-full relative" 
-               style={{ backgroundImage: `url('${currentOotd.imageUrl}')` }}>
-            
+          <div className="aspect-[600/600] bg-center bg-cover bg-no-repeat shrink-0 w-full relative"
+            style={{ backgroundImage: `url('${currentOotd.imageUrl}')` }}>
+
             {/* 네비게이션 화살표 - OOTD가 2개 이상일 때만 표시 */}
             {feed.ootds.length > 1 && (
               <>
@@ -62,7 +62,7 @@ export default function FeedDetailLeftSection({ feed }: FeedDetailLeftSectionPro
         ) : (
           <div className="aspect-[600/600] bg-[#f7f7f8] shrink-0 w-full flex items-center justify-center relative">
             <img src={emptyImageIcon} alt="이미지 없음" className="w-16 h-16" />
-            
+
             {/* 이미지가 없을 때도 화살표 표시 */}
             {feed.ootds.length > 1 && (
               <>
@@ -126,17 +126,17 @@ export default function FeedDetailLeftSection({ feed }: FeedDetailLeftSectionPro
           {feed.ootds.map((ootd, index) => {
             const isSelected = currentIndex === index;
             const hasImage = !!ootd.imageUrl;
-            
+
             return (
               <button
-                key={ootd.clothesId}
+                key={ootd.id}
                 onClick={() => handleThumbnailClick(index)}
                 className="relative rounded-[16px] shrink-0 size-[100px] cursor-pointer hover:opacity-80 transition-opacity"
               >
                 {hasImage ? (
                   <>
-                    <div 
-                      className="bg-center bg-cover bg-no-repeat rounded-[16px] size-full" 
+                    <div
+                      className="bg-center bg-cover bg-no-repeat rounded-[16px] size-full"
                       style={{ backgroundImage: `url('${ootd.imageUrl}')` }}
                     />
                     {isSelected && (
@@ -144,9 +144,8 @@ export default function FeedDetailLeftSection({ feed }: FeedDetailLeftSectionPro
                     )}
                   </>
                 ) : (
-                  <div className={`rounded-[16px] size-full flex items-center justify-center relative ${
-                    isSelected ? 'bg-[#e3f2fd]' : 'bg-[#f7f7f8]'
-                  }`}>
+                  <div className={`rounded-[16px] size-full flex items-center justify-center relative ${isSelected ? 'bg-[#e3f2fd]' : 'bg-[#f7f7f8]'
+                    }`}>
                     <img src={emptyImageIcon} alt="이미지 없음" className="w-8 h-8" />
                     {isSelected && (
                       <div aria-hidden="true" className="absolute border-4 border-[#1e89f4] border-solid inset-0 pointer-events-none rounded-[16px]" />
