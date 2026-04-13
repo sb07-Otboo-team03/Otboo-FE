@@ -18,36 +18,19 @@ export const getClothes = async (params: ClothesListParams): Promise<CursorRespo
  * 옷 등록
  */
 export const createClothes = async (
-  request: ClothesCreateRequest, 
-  image?: File
+  request: ClothesCreateRequest
 ): Promise<ClothesDto> => {
-  const formData = new FormData();
-
-  formData.append('request', new Blob([JSON.stringify(request)], { type: 'application/json' }));
-  
-  if (image) {
-    formData.append('image', image);
-  }
-  
-  return apiClient.postFormData<ClothesDto>('/api/clothes', formData);
+  return apiClient.post<ClothesDto>('/api/clothes', request);
 };
 
 /**
  * 옷 수정
  */
 export const updateClothes = async (
-  clothesId: string, 
-  request: ClothesUpdateRequest, 
-  image?: File
+  clothesId: string,
+  request: ClothesUpdateRequest
 ): Promise<ClothesDto> => {
-  const formData = new FormData();
-  formData.append('request', new Blob([JSON.stringify(request)], { type: 'application/json' }));
-  
-  if (image) {
-    formData.append('image', image);
-  }
-  
-  return apiClient.patchFormData<ClothesDto>(`/api/clothes/${clothesId}`, formData);
+  return apiClient.patch<ClothesDto>(`/api/clothes/${clothesId}`, request);
 };
 
 /**

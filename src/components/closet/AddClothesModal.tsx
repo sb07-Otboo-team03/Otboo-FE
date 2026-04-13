@@ -6,6 +6,7 @@ import { useAuthStore } from '@/lib/stores/useAuthStore';
 import { useClothesStore } from '@/lib/stores/useClothesStore';
 import { useClothesAttributeDefStore } from '@/lib/stores/useClothesAttributeDefStore';
 import { createClothes, extractByUrl } from '@/lib/api/clothes';
+import { getImagePresignedUrl, uploadImageToPresignedUrl, completeBinaryContentUpload } from '@/lib/api/binaryContent';
 import { toast } from 'sonner';
 import type { ClothesType, ClothesAttributeDto } from '@/lib/api/types';
 
@@ -71,12 +72,27 @@ export default function AddClothesModal({ open, onClose }: AddClothesModalProps)
     setLoading(true);
     try {
       const attributes = convertSelectedAttributesToDto();
+      let binaryContentId: string | undefined;
+
+      if (selectedImage) {
+        const presigned = await getImagePresignedUrl({
+          fileName: selectedImage.name,
+          contentType: selectedImage.type || 'application/octet-stream',
+          size: selectedImage.size
+        });
+
+        await uploadImageToPresignedUrl(presigned.uploadUrl, selectedImage);
+        await completeBinaryContentUpload(presigned.binaryContentId);
+        binaryContentId = presigned.binaryContentId;
+      }
+
       const newClothes = await createClothes({
         ownerId: auth.userDto.id,
         name: formData.name,
         type: formData.type,
-        attributes: attributes
-      }, selectedImage || undefined);
+        attributes: attributes,
+        binaryContentId,
+      });
 
       add(newClothes);
       toast.success('옷장에 성공적으로 등록되었습니다.');
