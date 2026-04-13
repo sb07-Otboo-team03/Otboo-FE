@@ -6,6 +6,7 @@ import { useImageUpload } from '@/hooks/useImageUpload';
 import { useClothesStore } from '@/lib/stores/useClothesStore';
 import { useClothesAttributeDefStore } from '@/lib/stores/useClothesAttributeDefStore';
 import { updateClothes } from '@/lib/api/clothes';
+import { getImagePresignedUrl, uploadImageToPresignedUrl, completeBinaryContentUpload } from '@/lib/api/binaryContent';
 import { toast } from 'sonner';
 import type { ClothesDto, ClothesType, ClothesAttributeDto } from '@/lib/api/types';
 
@@ -38,7 +39,7 @@ export default function EditClothesModal({ open, onClose, clothes }: EditClothes
   const { data: attributeDefs, fetch: fetchAttributes } = useClothesAttributeDefStore();
   const [loading, setLoading] = useState(false);
   const { selectedImage, imagePreview, handleImageChange, clearImage } = useImageUpload();
-  
+
   const [formData, setFormData] = useState({
     name: '',
     type: '' as ClothesType,
@@ -62,7 +63,7 @@ export default function EditClothesModal({ open, onClose, clothes }: EditClothes
         type: clothes.type,
         attributes: clothes.attributes
       });
-      
+
       // 기존 속성들을 selectedAttributes로 변환
       const existingAttributes: Record<string, string> = {};
       clothes.attributes.forEach(attr => {
@@ -71,7 +72,7 @@ export default function EditClothesModal({ open, onClose, clothes }: EditClothes
         }
       });
       setSelectedAttributes(existingAttributes);
-      
+
       clearImage();
     }
   }, [open, clothes, clearImage]);
@@ -82,7 +83,7 @@ export default function EditClothesModal({ open, onClose, clothes }: EditClothes
 
     return Object.entries(selectedAttributes)
       .filter(([, value]) => value && value.trim())
-      .map(([definitionId, value]) => ({definitionId, value}));
+      .map(([definitionId, value]) => ({ definitionId, value }));
   };
 
   // 수정 저장
@@ -93,12 +94,27 @@ export default function EditClothesModal({ open, onClose, clothes }: EditClothes
     setLoading(true);
     try {
       const attributes = convertSelectedAttributesToDto();
+      let binaryContentId: string | undefined;
+
+      if (selectedImage) {
+        const presigned = await getImagePresignedUrl({
+          fileName: selectedImage.name,
+          contentType: selectedImage.type || 'application/octet-stream',
+          size: selectedImage.size,
+        });
+
+        await uploadImageToPresignedUrl(presigned.uploadUrl, selectedImage);
+        await completeBinaryContentUpload(presigned.binaryContentId);
+        binaryContentId = presigned.binaryContentId;
+      }
+
       const updatedClothes = await updateClothes(clothes.id, {
         name: formData.name,
         type: formData.type,
-        attributes: attributes
-      }, selectedImage || undefined);
-      
+        attributes,
+        binaryContentId,
+      });
+
       update(updatedClothes.id, updatedClothes);
       toast.success('옷이 성공적으로 수정되었습니다.');
       handleClose();
@@ -124,139 +140,139 @@ export default function EditClothesModal({ open, onClose, clothes }: EditClothes
       <DialogOverlay className="bg-black/50" />
       <DialogContent className="max-w-[550px] p-0 bg-transparent border-none" showCloseButton={false}>
         <div className="bg-white box-border content-stretch flex flex-col gap-6 items-center justify-start p-[30px] relative rounded-[20px] shadow-[0px_2px_4px_0px_rgba(55,55,64,0.03)] w-full max-h-[90vh] overflow-y-auto">
-            {/* 헤더 */}
-            <div className="content-stretch flex items-center justify-between relative shrink-0 w-full">
-              <div className="w-[30px]" />
-              <DialogTitle className="font-bold leading-none not-italic relative shrink-0 text-gray-800 text-[22px] text-nowrap tracking-[-0.55px]">
-                옷 수정
-              </DialogTitle>
-              <DialogClose asChild>
-                <button className="overflow-clip relative shrink-0 size-[30px] hover:bg-gray-100 rounded transition-colors">
-                  <div className="absolute inset-[20.834%]">
-                    <img alt="닫기" className="block max-w-none size-full" src={closeIcon} />
-                  </div>
-                </button>
-              </DialogClose>
-            </div>
-
-            {/* 이미지 업로드 */}
-            <div className="box-border content-stretch flex flex-col items-end justify-start pb-[26px] pt-0 px-0 relative shrink-0 w-[100px] self-center">
-              <div className="aspect-square bg-gray-300 mb-[-26px] relative rounded-[100px] shrink-0 w-full overflow-hidden cursor-pointer" onClick={() => fileInputRef.current?.click()}>
-                {imagePreview ? (
-                  <img src={imagePreview} alt="미리보기" className="w-full h-full object-cover" />
-                ) : clothes.imageUrl ? (
-                  <img src={clothes.imageUrl} alt={clothes.name} className="w-full h-full object-cover" />
-                ) : (
-                  <div className="aspect-square overflow-clip relative size-full flex items-center justify-center">
-                    <div className="absolute inset-[29.167%] overflow-clip">
-                      <div className="absolute inset-[8.333%]">
-                        <img alt="사진 업로드" className="block max-w-none size-full" src={emptyImageIcon} />
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-              <button 
-                onClick={() => fileInputRef.current?.click()}
-                className="bg-blue-500 hover:bg-blue-600 box-border content-stretch flex flex-col gap-2 items-center justify-center mb-[-26px] overflow-clip px-3 py-1.5 relative rounded-[100px] shrink-0 transition-colors"
-              >
-                <div className="flex flex-col font-bold justify-center leading-none not-italic relative shrink-0 text-[16px] text-white tracking-[-0.4px] w-full">
-                  <p className="leading-normal">변경</p>
+          {/* 헤더 */}
+          <div className="content-stretch flex items-center justify-between relative shrink-0 w-full">
+            <div className="w-[30px]" />
+            <DialogTitle className="font-bold leading-none not-italic relative shrink-0 text-gray-800 text-[22px] text-nowrap tracking-[-0.55px]">
+              옷 수정
+            </DialogTitle>
+            <DialogClose asChild>
+              <button className="overflow-clip relative shrink-0 size-[30px] hover:bg-gray-100 rounded transition-colors">
+                <div className="absolute inset-[20.834%]">
+                  <img alt="닫기" className="block max-w-none size-full" src={closeIcon} />
                 </div>
               </button>
+            </DialogClose>
+          </div>
+
+          {/* 이미지 업로드 */}
+          <div className="box-border content-stretch flex flex-col items-end justify-start pb-[26px] pt-0 px-0 relative shrink-0 w-[100px] self-center">
+            <div className="aspect-square bg-gray-300 mb-[-26px] relative rounded-[100px] shrink-0 w-full overflow-hidden cursor-pointer" onClick={() => fileInputRef.current?.click()}>
+              {imagePreview ? (
+                <img src={imagePreview} alt="미리보기" className="w-full h-full object-cover" />
+              ) : clothes.imageUrl ? (
+                <img src={clothes.imageUrl} alt={clothes.name} className="w-full h-full object-cover" />
+              ) : (
+                <div className="aspect-square overflow-clip relative size-full flex items-center justify-center">
+                  <div className="absolute inset-[29.167%] overflow-clip">
+                    <div className="absolute inset-[8.333%]">
+                      <img alt="사진 업로드" className="block max-w-none size-full" src={emptyImageIcon} />
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="bg-blue-500 hover:bg-blue-600 box-border content-stretch flex flex-col gap-2 items-center justify-center mb-[-26px] overflow-clip px-3 py-1.5 relative rounded-[100px] shrink-0 transition-colors"
+            >
+              <div className="flex flex-col font-bold justify-center leading-none not-italic relative shrink-0 text-[16px] text-white tracking-[-0.4px] w-full">
+                <p className="leading-normal">변경</p>
+              </div>
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleImageChange}
+              className="hidden"
+            />
+          </div>
+
+          <form onSubmit={handleSave} className="w-full flex flex-col gap-6">
+            {/* 이름 */}
+            <div className="content-stretch flex flex-col gap-2.5 items-start justify-start relative shrink-0 w-full">
+              <div className="font-bold leading-none not-italic relative shrink-0 text-gray-500 text-[14px] tracking-[-0.35px] w-full">
+                <p className="leading-normal">이름</p>
+              </div>
               <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handleImageChange}
-                className="hidden"
+                type="text"
+                value={formData.name}
+                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                placeholder="이름을 입력해주세요"
+                className="bg-white box-border content-stretch flex h-[46px] items-center justify-between px-5 py-3.5 relative rounded-[12px] shrink-0 w-full border border-gray-200 shadow-[0px_2px_4px_0px_rgba(55,55,64,0.03)] focus:outline-none focus:border-blue-500"
+                required
               />
             </div>
 
-            <form onSubmit={handleSave} className="w-full flex flex-col gap-6">
-              {/* 이름 */}
-              <div className="content-stretch flex flex-col gap-2.5 items-start justify-start relative shrink-0 w-full">
-                <div className="font-bold leading-none not-italic relative shrink-0 text-gray-500 text-[14px] tracking-[-0.35px] w-full">
-                  <p className="leading-normal">이름</p>
-                </div>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                  placeholder="이름을 입력해주세요"
-                  className="bg-white box-border content-stretch flex h-[46px] items-center justify-between px-5 py-3.5 relative rounded-[12px] shrink-0 w-full border border-gray-200 shadow-[0px_2px_4px_0px_rgba(55,55,64,0.03)] focus:outline-none focus:border-blue-500"
-                  required
-                />
+            {/* 종류 */}
+            <div className="content-stretch flex flex-col gap-2.5 items-start justify-start relative shrink-0 w-full">
+              <div className="font-bold leading-none not-italic relative shrink-0 text-gray-500 text-[14px] tracking-[-0.35px] w-full">
+                <p className="leading-normal">종류</p>
               </div>
-
-              {/* 종류 */}
-              <div className="content-stretch flex flex-col gap-2.5 items-start justify-start relative shrink-0 w-full">
-                <div className="font-bold leading-none not-italic relative shrink-0 text-gray-500 text-[14px] tracking-[-0.35px] w-full">
-                  <p className="leading-normal">종류</p>
-                </div>
-                <Select value={formData.type} onValueChange={(value) => setFormData(prev => ({ ...prev, type: value as ClothesType }))} required>
-                  <SelectTrigger className="bg-white box-border content-stretch flex h-[46px] items-center justify-between px-5 py-3.5 relative rounded-[12px] shrink-0 w-full border border-gray-200 shadow-[0px_2px_4px_0px_rgba(55,55,64,0.03)]">
-                    <SelectValue placeholder="종류를 선택해주세요" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {CLOTHES_TYPES.map((type) => (
-                      <SelectItem key={type.value} value={type.value} className="cursor-pointer hover:bg-gray-50 hover:shadow-sm transition-colors">
-                        {type.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* 의상 속성 Select들 */}
-              {attributeDefs && attributeDefs.length > 0 && (
-                <div className="content-stretch flex flex-col gap-5 items-start justify-start relative shrink-0 w-full">
-                  {attributeDefs.map((attrDef) => (
-                    <div key={attrDef.id} className="content-stretch flex flex-col gap-2.5 items-start justify-start relative shrink-0 w-full">
-                      <div className="font-bold leading-none not-italic relative shrink-0 text-gray-500 text-[14px] tracking-[-0.35px] w-full">
-                        <p className="leading-normal truncate">{attrDef.name}</p>
-                      </div>
-                      <Select 
-                        value={selectedAttributes[attrDef.id] || ""} 
-                        onValueChange={(value) => 
-                          setSelectedAttributes(prev => ({ ...prev, [attrDef.id]: value }))
-                        }
-                      >
-                        <SelectTrigger className="bg-white box-border content-stretch flex h-[46px] items-center justify-between px-5 py-3.5 relative rounded-[12px] shrink-0 w-full border border-gray-200 shadow-[0px_2px_4px_0px_rgba(55,55,64,0.03)]">
-                          <SelectValue placeholder={`${attrDef.name}를 선택해주세요`} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {attrDef.selectableValues.map((value) => (
-                            <SelectItem key={value} value={value} className="cursor-pointer hover:bg-gray-50 hover:shadow-sm transition-colors">
-                              {value}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
+              <Select value={formData.type} onValueChange={(value) => setFormData(prev => ({ ...prev, type: value as ClothesType }))} required>
+                <SelectTrigger className="bg-white box-border content-stretch flex h-[46px] items-center justify-between px-5 py-3.5 relative rounded-[12px] shrink-0 w-full border border-gray-200 shadow-[0px_2px_4px_0px_rgba(55,55,64,0.03)]">
+                  <SelectValue placeholder="종류를 선택해주세요" />
+                </SelectTrigger>
+                <SelectContent>
+                  {CLOTHES_TYPES.map((type) => (
+                    <SelectItem key={type.value} value={type.value} className="cursor-pointer hover:bg-gray-50 hover:shadow-sm transition-colors">
+                      {type.label}
+                    </SelectItem>
                   ))}
-                </div>
-              )}
+                </SelectContent>
+              </Select>
+            </div>
 
-              {/* 하단 버튼 */}
-              <div className="box-border content-stretch flex gap-3 items-center justify-end pb-0 pt-1.5 px-0 relative shrink-0 w-full">
-                <Button
-                  type="button"
-                  onClick={handleClose}
-                  variant="secondary"
-                >
-                  취소
-                </Button>
-                <Button
-                  type="submit"
-                  disabled={loading || !formData.name || !formData.type}
-                  variant="primary"
-                >
-                  {loading ? '저장 중...' : '저장'}
-                </Button>
+            {/* 의상 속성 Select들 */}
+            {attributeDefs && attributeDefs.length > 0 && (
+              <div className="content-stretch flex flex-col gap-5 items-start justify-start relative shrink-0 w-full">
+                {attributeDefs.map((attrDef) => (
+                  <div key={attrDef.id} className="content-stretch flex flex-col gap-2.5 items-start justify-start relative shrink-0 w-full">
+                    <div className="font-bold leading-none not-italic relative shrink-0 text-gray-500 text-[14px] tracking-[-0.35px] w-full">
+                      <p className="leading-normal truncate">{attrDef.name}</p>
+                    </div>
+                    <Select
+                      value={selectedAttributes[attrDef.id] || ""}
+                      onValueChange={(value) =>
+                        setSelectedAttributes(prev => ({ ...prev, [attrDef.id]: value }))
+                      }
+                    >
+                      <SelectTrigger className="bg-white box-border content-stretch flex h-[46px] items-center justify-between px-5 py-3.5 relative rounded-[12px] shrink-0 w-full border border-gray-200 shadow-[0px_2px_4px_0px_rgba(55,55,64,0.03)]">
+                        <SelectValue placeholder={`${attrDef.name}를 선택해주세요`} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {attrDef.selectableValues.map((value) => (
+                          <SelectItem key={value} value={value} className="cursor-pointer hover:bg-gray-50 hover:shadow-sm transition-colors">
+                            {value}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                ))}
               </div>
-            </form>
-          </div>
+            )}
+
+            {/* 하단 버튼 */}
+            <div className="box-border content-stretch flex gap-3 items-center justify-end pb-0 pt-1.5 px-0 relative shrink-0 w-full">
+              <Button
+                type="button"
+                onClick={handleClose}
+                variant="secondary"
+              >
+                취소
+              </Button>
+              <Button
+                type="submit"
+                disabled={loading || !formData.name || !formData.type}
+                variant="primary"
+              >
+                {loading ? '저장 중...' : '저장'}
+              </Button>
+            </div>
+          </form>
+        </div>
       </DialogContent>
     </Dialog>
   );
