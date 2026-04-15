@@ -122,7 +122,11 @@ export default function AddClothesModal({ open, onClose }: AddClothesModalProps)
           .then((res) => res.blob())
           .then((blob) => {
             const filename = extracted.imageUrl?.split('/').pop() || 'image';
-            setSelectedImage(new File([blob], filename));
+            setSelectedImage(
+              new File([blob], filename, {
+                type: blob.type || 'application/octet-stream',
+              })
+            );
           });
       }
       // URL로 불러온 데이터를 폼에 채워주는 로직은 추후 구현
